@@ -29,7 +29,8 @@ pipeline {
         
         stage('运行测试') {
             steps {
-                sh 'npm test'
+                // Jenkins 容器内无 Node，在刚构建的镜像里跑测试
+                sh 'docker run --rm myapp:latest npm test'
             }
         }
         
