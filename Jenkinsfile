@@ -48,18 +48,16 @@ pipeline {
         }
         
         stage('部署') {
-            when {
-                branch 'main'
-            }
+            // 单分支任务可能没有 BRANCH_NAME，去掉 when 让每次成功构建都部署
             steps {
                 script {
                     echo "部署应用 ${DOCKER_IMAGE}:${DOCKER_TAG}"
                     sh """
                         docker stop myapp 2>/dev/null || true
                         docker rm myapp 2>/dev/null || true
-                        docker run -d -p 3000:3000 --name myapp ${DOCKER_IMAGE}:latest
+                        docker run -d -p 5000:5000 --name myapp ${DOCKER_IMAGE}:latest
                     """
-                    echo "应用已启动，访问 http://localhost:3000"
+                    echo "应用已启动，访问 http://localhost:5000"
                 }
             }
         }
