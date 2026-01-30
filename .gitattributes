@@ -1,0 +1,2 @@
+# 强制 shell 脚本使用 Unix 换行符，避免在 WSL 下执行报错
+*.sh text eol=lf

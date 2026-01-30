@@ -1,0 +1,31 @@
+# GitHub + Jenkins + Docker CI/CD（适用于 WSL）
+# Jenkins 使用宿主机 Docker（挂载 socket），无需单独 dind 服务
+# 注：Compose V2 已不再需要 version 字段
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      # WSL: 使用宿主机 Docker（Docker Desktop WSL2 或 Linux 原生 Docker）
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
+    networks:
+      - cicd-network
+    restart: unless-stopped
+
+volumes:
+  jenkins_home:
+    driver: local
+
+networks:
+  cicd-network:
+    driver: bridge
