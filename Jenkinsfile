@@ -54,8 +54,12 @@ pipeline {
             steps {
                 script {
                     echo "部署应用 ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                    // 这里可以添加部署命令
-                    // 例如：docker-compose up -d 或 kubectl apply 等
+                    sh """
+                        docker stop myapp 2>/dev/null || true
+                        docker rm myapp 2>/dev/null || true
+                        docker run -d -p 3000:3000 --name myapp ${DOCKER_IMAGE}:latest
+                    """
+                    echo "应用已启动，访问 http://localhost:3000"
                 }
             }
         }
