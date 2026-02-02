@@ -1,6 +1,10 @@
 pipeline {
     agent any
     
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '1'))  // 只保留最新 1 个构建
+    }
+    
     environment {
         DOCKER_IMAGE = 'myapp'
         DOCKER_TAG = "${env.BUILD_NUMBER}"
