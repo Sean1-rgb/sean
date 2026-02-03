@@ -8,10 +8,12 @@ services:
     container_name: jenkins
     user: root
     ports:
-      - "8080:8080"
+      - "8082:8080"
       - "50000:50000"
     volumes:
       - jenkins_home:/var/jenkins_home
+      # 将 SSH 密钥目录挂载到宿主机，确保持久化
+      - ./jenkins-ssh:/var/jenkins_home/.ssh
       # WSL: 使用宿主机 Docker（Docker Desktop WSL2 或 Linux 原生 Docker）
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
@@ -24,7 +26,8 @@ services:
 
 volumes:
   jenkins_home:
-    driver: local
+    external: true
+    name: dockerlearn_jenkins_home
 
 networks:
   cicd-network:
