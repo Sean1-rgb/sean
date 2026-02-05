@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '1'))
+    }
+
+    environment {
+        COMPOSE_FILE = 'docker-compose.ruoyi.yml'
+    }
+
+    stages {
+        stage('检出代码') {
+            steps {
+                checkout scm
+                echo '若依代码检出完成'
+            }
+        }
+
+        stage('构建并部署') {
+            steps {
+                script {
+                    echo '使用 Docker Compose 构建镜像并启动（内含 Maven/Node 构建）...'
+                    sh """
+                        # 检查并安装 docker-compose（如果不存在）
+                        if ! command -v docker-compose &> /dev/null; then
+                            echo '安装 docker-compose...'
+                            curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
+                            chmod +x /usr/local/bin/docker-compose
+                        fi
+                        
+                        # 使用 docker-compose 构建和启动
+                        docker-compose -f ${COMPOSE_FILE} build --no-cache
+                        docker-compose -f ${COMPOSE_FILE} up -d
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '若依部署成功！'
+            echo '前端: http://localhost:80'
+            echo '后端: http://localhost:8080'
+        }
+        failure {
+            echo '若依部署失败，请查看日志'
+        }
+        always {
+            deleteDir()
+        }
+    }
+}

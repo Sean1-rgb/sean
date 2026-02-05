@@ -13,10 +13,13 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
       # 将 SSH 密钥目录挂载到宿主机，确保持久化
-      - ./jenkins-ssh:/var/jenkins_home/.ssh
+      # 注意：此挂载会覆盖数据卷中的 .ssh 目录，确保使用宿主机上的密钥
+      - ./jenkins-ssh:/var/jenkins_home/.ssh:rw
       # WSL: 使用宿主机 Docker（Docker Desktop WSL2 或 Linux 原生 Docker）
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
+      # Docker Compose V2 插件（如果存在）
+      - /usr/libexec/docker/cli-plugins:/usr/libexec/docker/cli-plugins:ro
     environment:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=true

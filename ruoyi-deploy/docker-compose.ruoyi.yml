@@ -1,0 +1,82 @@
+# 若依 RuoYi-Vue 一键部署
+# 使用前：在 MySQL 中建库 ry-vue 并执行若依 sql 脚本（如 sql/ry_xxx.sql）
+# 启动：docker-compose -f docker-compose.ruoyi.yml up -d
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ruoyi-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: ry-vue
+      MYSQL_USER: ruoyi
+      MYSQL_PASSWORD: ruoyi123
+    ports:
+      - "3306:3306"
+    volumes:
+      - ruoyi_mysql_data:/var/lib/mysql
+      # 若依项目 sql 目录下的 .sql 会在 MySQL 首次启动时自动执行（建表）
+      - ./sql:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4
+    networks:
+      - ruoyi-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: ruoyi-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ruoyi-net
+    restart: unless-stopped
+
+  ruoyi-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    image: ruoyi-backend:latest
+    container_name: ruoyi-backend
+    environment:
+      # 覆盖若依配置，指向 Docker 内的 MySQL/Redis
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ry-vue?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: ruoyi
+      SPRING_DATASOURCE_PASSWORD: ruoyi123
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: "6379"
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - ruoyi-net
+    restart: unless-stopped
+
+  ruoyi-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    image: ruoyi-ui:latest
+    container_name: ruoyi-ui
+    ports:
+      - "80:80"
+    depends_on:
+      - ruoyi-backend
+    networks:
+      - ruoyi-net
+    restart: unless-stopped
+
+volumes:
+  ruoyi_mysql_data:
+
+networks:
+  ruoyi-net:
+    driver: bridge
