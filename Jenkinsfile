@@ -51,6 +51,32 @@ pipeline {
             }
         }
         
+        stage('启动Redis') {
+            steps {
+                script {
+                    echo "启动 Redis 服务..."
+                    sh """
+                        # 检查 Redis 是否已运行
+                        if ! docker ps | grep -q redis; then
+                            echo "启动 Redis 容器..."
+                            docker run -d \\
+                                --name redis \\
+                                --network cicd-network \\
+                                -p 6379:6379 \\
+                                -v redis_data:/data \\
+                                --restart unless-stopped \\
+                                redis:7-alpine redis-server --appendonly yes
+                            echo "等待 Redis 启动..."
+                            sleep 5
+                        else
+                            echo "Redis 已在运行"
+                        fi
+                    """
+                    echo "Redis 已启动，端口: 6379"
+                }
+            }
+        }
+        
         stage('部署') {
             // 单分支任务可能没有 BRANCH_NAME，去掉 when 让每次成功构建都部署
             steps {
@@ -59,9 +85,16 @@ pipeline {
                     sh """
                         docker stop myapp 2>/dev/null || true
                         docker rm myapp 2>/dev/null || true
-                        docker run -d -p 5000:3000 --name myapp ${DOCKER_IMAGE}:latest
+                        docker run -d \\
+                            -p 5000:3000 \\
+                            --name myapp \\
+                            --network cicd-network \\
+                            -e REDIS_HOST=redis \\
+                            -e REDIS_PORT=6379 \\
+                            ${DOCKER_IMAGE}:latest
                     """
                     echo "应用已启动，访问 http://localhost:5000"
+                    echo "Redis 连接信息: redis:6379 (容器内) 或 localhost:6379 (宿主机)"
                 }
             }
         }

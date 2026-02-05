@@ -23,11 +23,32 @@ services:
     networks:
       - cicd-network
     restart: unless-stopped
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6380:6379"  # 宿主机使用 6380 端口，避免与 kubectl port-forward 冲突
+    volumes:
+      - redis_data:/data
+    networks:
+      - cicd-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
 volumes:
   jenkins_home:
     external: true
     name: dockerlearn_jenkins_home
+  redis_data:
+    driver: local
 
 networks:
   cicd-network:
